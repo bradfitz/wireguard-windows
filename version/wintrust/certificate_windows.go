@@ -48,7 +48,9 @@ func ExtractCertificates(path string) ([]x509.Certificate, error) {
 			break
 		}
 		buf := make([]byte, cert.Length)
-		copy(buf, (*[1 << 20]byte)(unsafe.Pointer(cert.EncodedCert))[:])
+		for i := range buf {
+			buf[i] = *(*byte)(add(unsafe.Pointer(cert.EncodedCert), uintptr(i)))
+		}
 		if c, err := x509.ParseCertificate(buf); err == nil {
 			certs = append(certs, *c)
 		} else {
@@ -56,4 +58,9 @@ func ExtractCertificates(path string) ([]x509.Certificate, error) {
 		}
 	}
 	return certs, nil
+}
+
+// add is a copy of unsafe.Add (https://github.com/golang/go/issues/40481)
+func add(p unsafe.Pointer, x uintptr) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(p) + x)
 }
